@@ -67,7 +67,7 @@ const deckVisuals = [
 const deckCards = computed(() =>
   items('deck.cards', ['tag', 'title', 'body']).map((c, i) => {
     const v = deckVisuals[i] ?? {}
-    return { ...c, ...v, cta: v.ctaKey ? t(v.ctaKey) : '' }
+    return { ...c, ...v, cta: v.ctaKey ? t(v.ctaKey) : '', alt: t(`alt.packs.${i}`) }
   }),
 )
 
@@ -79,7 +79,7 @@ const newsVisuals = [
   { emoji: '🏆', char: '/news-league.webp' },
 ]
 const newsItems = computed(() =>
-  items('news.items', ['tag', 'date', 'version', 'title', 'body']).map((n, i) => ({ ...n, ...newsVisuals[i] })),
+  items('news.items', ['tag', 'date', 'version', 'title', 'body']).map((n, i) => ({ ...n, ...newsVisuals[i], alt: t(`alt.news.${i}`) })),
 )
 
 const CONTACT_EMAIL = 'philaphatkaewthane@gmail.com'

@@ -290,6 +290,29 @@
       names: ['June', 'Boss', 'Fah', 'Ton', 'Prae', 'Mind'],
     },
   },
+  alt: {
+    packs: [
+      'Glasses guy pulling a suitcase and holding a passport, a black cat peeking out of his backpack — Travel pack',
+      'Punk-haired office guy holding coffee and a laptop — Workplace pack',
+      'Glasses guy lifting noodles with chopsticks — Food pack',
+      'Office guy fixing his red tie and handing over a resume — Job interview pack',
+      'Emo girl with headphones hugging a black cat — Chat with friends pack',
+      'Glasses guy biting a pencil, holding an exam paper — Exam prep pack',
+      'Glasses guy giving a thumbs-up — Word mini-game',
+    ],
+    news: [
+      'Glasses guy giving a thumbs-up for the new Hangman mini-game',
+      'Emo girl cheering for the newly added Korean language',
+      'Office guy pointing confidently, number one in the weekly league',
+    ],
+    screens: {
+      streak: 'Puean Rian app screen: celebrating a 30-day learning streak',
+      result: 'Puean Rian app screen: stage cleared with 3 stars, gems and trophies',
+      home: 'Puean Rian app screen: home with the stage map and the next stage',
+      league: 'Puean Rian app screen: weekly league leaderboard',
+      shop: 'Puean Rian app screen: the secret merchant shop for energy and items',
+    },
+  },
   cta: {
     title: "LET'S LEARN!",
     body: 'Download free and start chatting with a new friend who is ready to practice with you every day.',

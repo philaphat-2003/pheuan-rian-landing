@@ -78,6 +78,9 @@ const PRESETS = {
   ],
 }
 
+// ปัดทศนิยม 2 ตำแหน่ง: Math.sin/cos ใน Node (ตอน prerender) กับเบราว์เซอร์ให้ทศนิยมท้าย ๆ ต่างกัน → hydration ไม่ตรง
+const q = (n) => Math.round(n * 100) / 100
+
 // สุ่มแบบมี seed → รูปร่างเหมือนเดิมทุกครั้งที่โหลด
 function rng(seed) {
   let a = seed * 9301 + 49297
@@ -98,7 +101,7 @@ function splat(seed) {
     const a = ((i + r() * 0.5) / n) * Math.PI * 2
     const spike = r()
     const rad = spike > 0.78 ? 30 + r() * 16 : spike > 0.5 ? 22 + r() * 6 : 15 + r() * 6
-    return [50 + Math.cos(a) * rad, 50 + Math.sin(a) * rad]
+    return [q(50 + Math.cos(a) * rad), q(50 + Math.sin(a) * rad)]
   })
   const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
   let d = `M${mid(pts[n - 1], pts[0]).join(' ')}`
@@ -106,7 +109,7 @@ function splat(seed) {
   const dots = Array.from({ length: 18 }, () => {
     const a = r() * Math.PI * 2
     const dist = 34 + r() * 15
-    return { cx: 50 + Math.cos(a) * dist, cy: 50 + Math.sin(a) * dist, r: 0.6 + r() * 2.6 }
+    return { cx: q(50 + Math.cos(a) * dist), cy: q(50 + Math.sin(a) * dist), r: q(0.6 + r() * 2.6) }
   })
   return { d: d + 'Z', dots }
 }
@@ -114,7 +117,7 @@ function splat(seed) {
 // แถบน้ำสีไหลลงมาจากขอบบน
 function drips(seed) {
   const r = rng(seed)
-  return Array.from({ length: 7 }, (_, i) => ({ x: 10 + i * 30 + r() * 12, w: 5 + r() * 5, h: 12 + r() * 38 }))
+  return Array.from({ length: 7 }, (_, i) => ({ x: q(10 + i * 30 + r() * 12), w: q(5 + r() * 5), h: q(12 + r() * 38) }))
 }
 
 const items = computed(() =>

@@ -29,3 +29,6 @@ desktop.ini
 .px-tmp.mjs
 .crop-tmp.mjs
 .size-tmp.mjs
+
+# ไฟล์ชั่วคราวตอน prerender
+.vite-ssg-temp/

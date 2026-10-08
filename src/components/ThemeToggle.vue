@@ -4,7 +4,9 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const storageKey = 'pheuan-rian:theme'
-const dark = ref(document.documentElement.dataset.theme !== 'light')
+// ธีมจริงถูกตั้งไว้แล้วโดยสคริปต์ใน index.html ก่อนหน้าเว็บวาด
+// ตอน prerender ไม่มี document → เริ่มที่ค่าเริ่มต้น (มืด) แล้วอ่านค่าจริงตอน mount
+const dark = ref(true)
 
 watch(dark, (value) => {
   const theme = value ? 'dark' : 'light'
@@ -12,12 +14,15 @@ watch(dark, (value) => {
   document.documentElement.style.colorScheme = theme
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', value ? '#10121c' : '#f5f3ea')
   try { localStorage.setItem(storageKey, theme) } catch {}
-}, { immediate: true })
+})
 
 function syncTheme(event) {
   if (event.key === storageKey || event.key === null) dark.value = event.newValue !== 'light'
 }
-onMounted(() => window.addEventListener('storage', syncTheme))
+onMounted(() => {
+  dark.value = document.documentElement.dataset.theme !== 'light'
+  window.addEventListener('storage', syncTheme)
+})
 onBeforeUnmount(() => window.removeEventListener('storage', syncTheme))
 </script>
 

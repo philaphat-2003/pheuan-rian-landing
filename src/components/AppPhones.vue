@@ -3,16 +3,22 @@
 // AppShowcase วางชุดนี้ซ้อนกันสองชั้น (สว่าง/มืด) แล้วตัดด้วยเส้นตรงกลาง
 // ภาพมาจาก golden test ของแอป (pheuan-rian-App/apps/mobile/test/goldens) → public/app-screens/<ชื่อ>-<theme>.webp
 // bar = สีแถบสถานะด้านบน ให้ต่อกับพื้นหลังของหน้าจอนั้น (shop เป็นฉากซอยกลางคืนทั้งสองโหมด)
-defineProps({
+import { useI18n } from 'vue-i18n'
+
+const props = defineProps({
   theme: { type: String, default: 'light' },
 })
+const { t } = useI18n()
+
+// คำอธิบายรูปอยู่ในไฟล์ภาษา (alt.screens.*) — ชั้นโหมดมืดซ้อนเป็นภาพซ้ำ (aria-hidden) จึงให้ alt ว่าง ไม่อ่านซ้ำสองรอบ
+const altOf = (name) => (props.theme === 'light' ? t(`alt.screens.${name}`) : '')
 
 const screens = [
-  { name: 'streak', alt: 'Streak' },
-  { name: 'result', alt: 'Stage result' },
-  { name: 'home', alt: 'Home', main: true },
-  { name: 'league', alt: 'Weekly league' },
-  { name: 'shop', alt: 'Shop', bar: { light: '#030b2f', dark: '#030b2f' } },
+  { name: 'streak' },
+  { name: 'result' },
+  { name: 'home', main: true },
+  { name: 'league' },
+  { name: 'shop', bar: { light: '#030b2f', dark: '#030b2f' } },
 ]
 const BAR = { light: '#f5f3ea', dark: '#10121c' }
 const barColor = (s, theme) => s.bar?.[theme] ?? BAR[theme]
@@ -28,7 +34,7 @@ const barText = (color) => (color === '#f5f3ea' ? '#11152e' : '#ffffff')
           <span>9:41</span>
           <span class="status-icons"><i class="sig" /><i class="wifi" /><i class="batt" /></span>
         </div>
-        <img :src="`/app-screens/${s.name}-${theme}.webp`" :alt="s.alt" width="540" height="1199" loading="lazy" decoding="async" />
+        <img :src="`/app-screens/${s.name}-${theme}.webp`" :alt="altOf(s.name)" width="540" height="1199" loading="lazy" decoding="async" />
         <span class="home-bar" :style="{ background: barText(barColor(s, theme)) }" />
       </div>
     </div>

@@ -9,31 +9,46 @@ export const LOCALES = [
 ]
 
 const STORAGE_KEY = 'pheuan-rian:locale'
+const inBrowser = typeof window !== 'undefined'
 
-function initialLocale() {
+// ภาษาที่ผู้ใช้เคยเลือก — อ่านไว้ก่อน watch ด้านล่างจะเขียนทับด้วยค่าเริ่มต้น
+let saved = null
+if (inBrowser) {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (LOCALES.some((l) => l.code === saved)) return saved
+    saved = localStorage.getItem(STORAGE_KEY)
   } catch {}
-  return 'th'
 }
 
+// เริ่มเป็นไทยเสมอ ให้ตรงกับ HTML ที่ prerender ไว้ (hydration จะได้ไม่เพี้ยน)
+// แล้วค่อยเปลี่ยนเป็นภาษาที่บันทึกไว้หลัง hydrate เสร็จ (applySavedLocale ใน main.js)
 export const i18n = createI18n({
   legacy: false,
-  locale: initialLocale(),
+  locale: 'th',
   fallbackLocale: 'th',
   messages: { th, en },
 })
 
-// sync <html lang>, <title> และจำภาษาที่เลือกไว้
-watch(
-  i18n.global.locale,
-  (locale) => {
-    document.documentElement.lang = locale
-    document.title = i18n.global.t('meta.title')
-    try {
-      localStorage.setItem(STORAGE_KEY, locale)
-    } catch {}
-  },
-  { immediate: true },
-)
+export function applySavedLocale() {
+  if (LOCALES.some((l) => l.code === saved) && saved !== i18n.global.locale.value) i18n.global.locale.value = saved
+}
+
+// sync <html lang>, <title> และจำภาษาที่เลือกไว้ (เฉพาะในเบราว์เซอร์)
+if (inBrowser) {
+  let first = true
+  watch(
+    i18n.global.locale,
+    (locale) => {
+      document.documentElement.lang = locale
+      document.title = i18n.global.t('meta.title')
+      // รอบแรก (ค่าเริ่มต้น 'th') ไม่บันทึก ไม่งั้นจะทับภาษาที่ผู้ใช้เลือกไว้ก่อน applySavedLocale
+      if (first) {
+        first = false
+        return
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, locale)
+      } catch {}
+    },
+    { immediate: true },
+  )
+}

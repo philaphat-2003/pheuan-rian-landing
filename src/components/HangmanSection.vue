@@ -18,7 +18,8 @@ const MAX_MISS = 6
 const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'].map((r) => r.split(''))
 
 const wordCount = computed(() => tm('game.words').length)
-const index = ref(Math.floor(Math.random() * 10))
+// เริ่มที่คำแรกเสมอ (ตรงกับ HTML ที่ prerender) แล้วค่อยสุ่มคำตอน mount ในเบราว์เซอร์
+const index = ref(0)
 const wordAt = (i) => t(`game.words.${i % wordCount.value}.word`)
 const word = computed(() => wordAt(index.value))
 const hint = computed(() => t(`game.words.${index.value % wordCount.value}.hint`))
@@ -170,6 +171,8 @@ function onKey(e) {
   e.preventDefault()
 }
 onMounted(() => {
+  index.value = Math.floor(Math.random() * wordCount.value)
+  reset()
   observer = new IntersectionObserver(([entry]) => (inView = entry.isIntersecting), { threshold: 0.4 })
   observer.observe(root.value)
   window.addEventListener('keydown', onKey)

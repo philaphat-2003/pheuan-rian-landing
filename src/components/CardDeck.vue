@@ -88,8 +88,8 @@ const tone = (i) => tones[i % tones.length]
               <span class="splat absolute -top-6 -right-6 size-28 bg-white/25" />
               <span class="splat absolute -bottom-8 left-8 size-24 bg-night/25" />
               <!-- ตัวละครประจำหมวด: เด้งขึ้นจากขอบล่างตอนการ์ดเปิด แล้วขยับตามท่าของหมวดนั้น (anim) -->
-              <span v-if="c.image" class="pack-char" :class="`anim-${c.anim}`" aria-hidden="true">
-                <img :src="c.image" alt="" />
+              <span v-if="c.image" class="pack-char" :class="`anim-${c.anim}`">
+                <img :src="c.image" :alt="c.alt" />
                 <span v-if="c.anim === 'sway'" class="fx steam"><i /><i /><i /></span>
                 <span v-if="c.anim === 'chill'" class="fx notes"><i>♪</i><i>♫</i><i>♪</i></span>
                 <span v-if="c.anim === 'nervous'" class="fx sweat" />

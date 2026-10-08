@@ -6,19 +6,101 @@ import CatWalker from './CatWalker.vue'
 
 const { t } = useI18n()
 const wall = ref(null)
-const durations = ref([64, 70])
+const tracks = []
+
+// แถวรีวิวเลื่อนเองช้า ๆ + ผู้ใช้ลาก/ปัดเองได้ (เมาส์หรือนิ้ว) ปล่อยแล้วไหลต่อด้วยแรงเหวี่ยง แล้วกลับไปเลื่อนเอง
+// แต่ละแถวมีรีวิว 2 ชุดเหมือนกัน → เลื่อนครบ 1 ชุดก็วนกลับได้แบบไร้รอยต่อ
+const AUTO = [-25, 23] // px/วินาที: แถวบนไปซ้าย แถวล่างไปขวา
+const rowsState = AUTO.map((speed) => ({ x: 0, speed, width: 0, vx: 0, drag: null, hover: false }))
+let raf = 0
+let last = 0
+let visible = false
 let resizeObserver
-onMounted(() => {
-  const groups = wall.value.querySelectorAll('.testimonials-group:first-child')
-  // Constant pixel speed on every screen; each duplicated group has identical width.
-  const measure = () => {
-    durations.value = Array.from(groups, (group, index) => group.getBoundingClientRect().width / (index === 0 ? 25 : 23))
+let observer
+
+function wrap(r) {
+  if (!r.width) return
+  r.x = (((r.x % r.width) + r.width) % r.width) - r.width // ให้อยู่ในช่วง (-width, 0]
+}
+function frame(now) {
+  const dt = last ? Math.min(0.05, (now - last) / 1000) : 0
+  last = now
+  rowsState.forEach((r, i) => {
+    if (!r.drag) {
+      if (Math.abs(r.vx) > 5) {
+        r.x += r.vx * dt // แรงเหวี่ยงหลังปล่อย ค่อย ๆ ลดลง
+        r.vx *= Math.pow(0.04, dt)
+      } else if (!r.hover) {
+        r.vx = 0
+        r.x += r.speed * dt
+      }
+    }
+    wrap(r)
+    if (tracks[i]) tracks[i].style.transform = 'translate3d(' + r.x + 'px, 0, 0)'
+  })
+  raf = visible ? requestAnimationFrame(frame) : 0
+}
+function start() {
+  if (raf) return
+  last = 0
+  raf = requestAnimationFrame(frame)
+}
+
+function onDown(i, e) {
+  if (e.button > 0) return
+  const r = rowsState[i]
+  r.drag = { id: e.pointerId, x0: e.clientX, start: r.x, lastX: e.clientX, lastT: performance.now(), moved: false }
+  r.vx = 0
+}
+function onMove(i, e) {
+  const r = rowsState[i]
+  const d = r.drag
+  if (!d || d.id !== e.pointerId) return
+  const dx = e.clientX - d.x0
+  if (!d.moved && Math.abs(dx) > 4) {
+    d.moved = true
+    e.currentTarget.setPointerCapture(e.pointerId)
   }
+  if (!d.moved) return
+  const now = performance.now()
+  r.vx = ((e.clientX - d.lastX) / Math.max(1, now - d.lastT)) * 1000
+  d.lastX = e.clientX
+  d.lastT = now
+  r.x = d.start + dx
+}
+function onUp(i, e) {
+  const r = rowsState[i]
+  if (!r.drag || r.drag.id !== e.pointerId) return
+  if (!r.drag.moved || performance.now() - r.drag.lastT > 80) r.vx = 0 // หยุดนิ่งก่อนปล่อย = ไม่เหวี่ยง
+  r.drag = null
+}
+// คีย์บอร์ด: โฟกัสแถวแล้วกดลูกศรซ้าย/ขวา
+function onKey(i, e) {
+  const step = { ArrowLeft: 1, ArrowRight: -1 }[e.key]
+  if (!step) return
+  rowsState[i].vx = step * 900
+  e.preventDefault()
+}
+
+onMounted(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return // ใช้การเลื่อนแนวนอนปกติของเบราว์เซอร์แทน
+  const groups = wall.value.querySelectorAll('.testimonials-group:first-child')
+  const measure = () => groups.forEach((g, i) => (rowsState[i].width = g.getBoundingClientRect().width))
   resizeObserver = new ResizeObserver(measure)
-  groups.forEach(group => resizeObserver.observe(group))
+  groups.forEach((g) => resizeObserver.observe(g))
   measure()
+  rowsState[1].x = -rowsState[1].width / 2 // แถวล่างเริ่มคนละจังหวะกับแถวบน
+  observer = new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting
+    if (visible) start()
+  })
+  observer.observe(wall.value)
 })
-onBeforeUnmount(() => resizeObserver?.disconnect())
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  observer?.disconnect()
+  cancelAnimationFrame(raf)
+})
 // Layout samples only. Replace these with approved reviews before publishing.
 const ratings = [[5, 4, 5, 4], [4, 5, 4, 5]]
 const rows = computed(() => ratings.map((row, rowIndex) => row.map((rating, index) => ({
@@ -79,8 +161,22 @@ const rows = computed(() => ratings.map((row, rowIndex) => row.map((rating, inde
     <CatWalker class="testimonials-cat" />
 
     <div ref="wall" class="testimonials-wall">
-      <div v-for="(row, rowIndex) in rows" :key="rowIndex" class="testimonials-viewport" tabindex="0" role="region" :aria-label="t('testimonials.row', { n: rowIndex + 1 })">
-        <div class="testimonials-track" :class="{ 'is-reversed': rowIndex === 1 }" :style="{ '--review-duration': `${durations[rowIndex]}s` }">
+      <div
+        v-for="(row, rowIndex) in rows"
+        :key="rowIndex"
+        class="testimonials-viewport"
+        tabindex="0"
+        role="region"
+        :aria-label="t('testimonials.row', { n: rowIndex + 1 })"
+        @pointerdown="onDown(rowIndex, $event)"
+        @pointermove="onMove(rowIndex, $event)"
+        @pointerup="onUp(rowIndex, $event)"
+        @pointercancel="onUp(rowIndex, $event)"
+        @pointerenter="rowsState[rowIndex].hover = $event.pointerType === 'mouse'"
+        @pointerleave="rowsState[rowIndex].hover = false"
+        @keydown="onKey(rowIndex, $event)"
+      >
+        <div :ref="(el) => (tracks[rowIndex] = el)" class="testimonials-track" :class="{ 'is-reversed': rowIndex === 1 }">
           <div v-for="copy in 2" :key="copy" class="testimonials-group" :aria-hidden="copy === 2 ? true : undefined" :inert="copy === 2 ? true : undefined">
             <figure v-for="review in row" :key="review.id" class="testimonial-card">
               <span class="testimonial-tape" aria-hidden="true">{{ ['REAL TALK', 'SPEAK UP!', 'MY CREW', 'LEVEL UP'][review.id % 4] }}</span>
@@ -118,11 +214,11 @@ h2::after { content: ''; position: absolute; z-index: -1; left: 0; right: -10px;
 .stamp-star { position: absolute; right: -24px; top: -33px; font-size: 64px; color: var(--color-mint); -webkit-text-stroke: 2px var(--color-night); }
 .testimonials-wall { position: relative; padding-block: 10px; }
 .testimonials-wall::before { content: ''; position: absolute; inset: 8% 0; background: var(--color-ink); opacity: .12; transform: skewY(-2deg); pointer-events: none; }
-.testimonials-viewport { position: relative; overflow: hidden; padding: 20px 0 22px; }
+.testimonials-viewport { position: relative; overflow: hidden; padding: 20px 0 22px; cursor: grab; touch-action: pan-y; user-select: none; }
+.testimonials-viewport:active { cursor: grabbing; }
 .testimonials-viewport + .testimonials-viewport { margin-top: -4px; }
 .testimonials-viewport:focus-visible { outline: 3px dashed var(--color-heading); outline-offset: -4px; }
-.testimonials-track { display: flex; width: max-content; will-change: transform; animation: reviews-left var(--review-duration, 64s) linear infinite; }
-.testimonials-track.is-reversed { animation-direction: reverse; }
+.testimonials-track { display: flex; width: max-content; will-change: transform; }
 .testimonials-group { display: flex; flex-shrink: 0; min-width: 100vw; gap: 16px; padding-right: 16px; }
 .testimonial-card { --review-accent: var(--color-mint); position: relative; display: flex; flex: 1 0 clamp(290px, 28vw, 410px); flex-direction: column; width: clamp(290px, 28vw, 410px); min-height: 288px; padding: 40px 26px 22px; border: 3px solid var(--color-night); border-radius: 3px 16px 3px 3px; background: var(--color-paper); box-shadow: 5px 6px 0 var(--review-accent); }
 .testimonial-card:nth-child(2n) { --review-accent: #b5a2ff; background: var(--color-panel); }
@@ -143,20 +239,32 @@ figcaption small { display: block; margin-top: 2px; font-size: 11px; color: var(
 .testimonial-number { margin-left: auto; color: var(--color-muted); font: 18px var(--font-tag); transform: rotate(8deg); }
 .testimonial-stars { display: flex; align-self: flex-start; gap: 3px; margin-top: 20px; padding: 4px 8px; border: 1px solid var(--color-night); background: var(--review-accent); color: var(--color-night); transform: rotate(-3deg); }
 .testimonial-stars svg { width: 18px; height: 18px; }
-.testimonials-viewport:hover .testimonials-track, .testimonials-viewport:focus-within .testimonials-track { animation-play-state: paused; }
 .testimonials-caption { display: flex; justify-content: space-between; gap: 16px; max-width: 1152px; margin: 20px auto 0; padding-inline: 24px; color: var(--color-muted); font: 10px monospace; letter-spacing: 1.4px; }
-@keyframes reviews-left { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
 @media (max-width: 640px) {
   .testimonials { padding-top: 44px; }
   .testimonials-heading { align-items: flex-start; gap: 16px; margin-bottom: 28px; }
   .testimonials-heading > div:first-child { min-width: 0; }
   .crew-stamp { display: none; }
-  .testimonial-card { padding: 36px 22px 22px; min-height: 276px; }
-  blockquote { font-size: 17px; }
+  /* มือถือ: การ์ดเล็กลง เห็นการ์ดถัดไปโผล่มาให้รู้ว่าปัดได้ */
+  .testimonial-card,
+  .is-reversed .testimonial-card { flex-basis: 236px; width: 236px; min-height: 0; padding: 30px 16px 16px; border-width: 2px; }
+  .testimonials-group { gap: 12px; padding-right: 12px; }
+  blockquote { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .testimonial-tape { font-size: 11px; padding: 4px 11px; top: -11px; }
+  .testimonial-quote { font-size: 56px; }
+  .testimonial-avatar { width: 34px; height: 34px; }
+  .testimonial-avatar svg { width: 22px; height: 22px; }
+  figcaption strong { font-size: 12px; }
+  figcaption small { font-size: 10px; }
+  .testimonial-number { font-size: 14px; }
+  .testimonial-stars { margin-top: 12px; }
+  .testimonial-stars svg { width: 14px; height: 14px; }
+  .testimonials-viewport { padding: 16px 0 18px; }
   .testimonials-caption { font-size: 8px; letter-spacing: .6px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .testimonials-track { animation: none; transform: none; will-change: auto; }
+  .testimonials-track { transform: none !important; will-change: auto; }
+  .testimonials-viewport { cursor: auto; }
   .testimonials-group[aria-hidden='true'] { display: none; }
   .testimonials-viewport { overflow-x: auto; }
 }

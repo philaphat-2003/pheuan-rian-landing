@@ -45,7 +45,7 @@ const tones = ['bg-ink', 'bg-teal', 'bg-steel', 'bg-mint']
               <span class="splat absolute -right-8 -bottom-10 size-36 bg-white/20" />
               <!-- ตัวละครยืนโผล่จากขอบล่าง + emoji เป็นป้ายลอย -->
               <template v-if="item.char">
-                <img :src="item.char" alt="" class="news-char" :class="i === 0 ? 'is-big' : 'is-small'" />
+                <img :src="item.char" :alt="item.alt" class="news-char" :class="i === 0 ? 'is-big' : 'is-small'" />
                 <span class="news-emoji" :class="i === 0 ? 'is-big' : 'is-small'" aria-hidden="true">{{ item.emoji }}</span>
               </template>
               <span
