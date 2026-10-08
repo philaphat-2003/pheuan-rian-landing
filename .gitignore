@@ -1,0 +1,31 @@
+# dependencies / build output (สร้างใหม่ได้: npm install / npm run build — Vercel build เอง)
+node_modules/
+dist/
+
+# Vercel: ค่าโปรเจกต์ที่ผูกกับบัญชี (สร้างตอนรัน `vercel`)
+.vercel/
+
+# ค่าลับ / env — ห้ามขึ้น git
+.env
+.env.*
+!.env.example
+
+# ภาพต้นฉบับขนาดใหญ่ (~30MB) — สำรองไว้ที่ Desktop/pheuan-rian-images แล้ว
+# เว็บใช้ไฟล์ที่ย่อแล้วใน public/ เท่านั้น
+assets/*
+!assets/README.txt
+!assets/mascot-generation.md
+
+# ไฟล์ชั่วคราว / ระบบ / editor
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.eye-tmp.mjs
+.px-tmp.mjs
+.crop-tmp.mjs
+.size-tmp.mjs
